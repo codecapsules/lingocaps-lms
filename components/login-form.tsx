@@ -56,7 +56,10 @@ export function LoginForm({
           </Button>
           <FieldDescription className="text-center">
             Don&apos;t have an account?{" "}
-            <Link href="/register" className="underline underline-offset-4">
+            <Link
+              href="/register"
+              className="hover:text-primary underline underline-offset-4"
+            >
               Register
             </Link>
           </FieldDescription>
