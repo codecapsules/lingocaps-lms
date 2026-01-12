@@ -10,6 +10,7 @@ import {
 import { Input } from "@/components/ui/input";
 import { FcGoogle } from "react-icons/fc";
 import { FaGithub } from "react-icons/fa";
+import Link from "next/link";
 
 export function LoginForm({
   className,
@@ -55,9 +56,9 @@ export function LoginForm({
           </Button>
           <FieldDescription className="text-center">
             Don&apos;t have an account?{" "}
-            <a href="#" className="underline underline-offset-4">
-              Sign up
-            </a>
+            <Link href="/register" className="underline underline-offset-4">
+              Register
+            </Link>
           </FieldDescription>
         </Field>
       </FieldGroup>
