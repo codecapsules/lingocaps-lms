@@ -14,15 +14,20 @@ import { FcGoogle } from "react-icons/fc";
 import { FaGithub } from "react-icons/fa";
 import Link from "next/link";
 import { toast } from "sonner";
-import { useTransition } from "react";
-import { Loader2 } from "lucide-react";
+import { useState, useTransition } from "react";
+import { Loader2, Send } from "lucide-react";
 import { authClient } from "@/lib/auth-client";
+import { useRouter } from "next/navigation";
 
 export function LoginForm({
   className,
   ...props
 }: React.ComponentProps<"form">) {
+  const router = useRouter();
   const [githubPending, setGithubPending] = useTransition();
+  const [googlePending, setGooglePending] = useTransition();
+  const [emailPending, setEmailPending] = useTransition();
+  const [email, setEmail] = useState("");
 
   async function signInWithGithub() {
     setGithubPending(async () => {
@@ -32,6 +37,41 @@ export function LoginForm({
         fetchOptions: {
           onSuccess: () => {
             toast.success("Success");
+          },
+          onError: () => {
+            toast.error("Internal server error");
+          },
+        },
+      });
+    });
+  }
+
+  async function signInWithGoogle() {
+    setGooglePending(async () => {
+      await authClient.signIn.social({
+        provider: "google",
+        callbackURL: "/",
+        fetchOptions: {
+          onSuccess: () => {
+            toast.success("Success");
+          },
+          onError: () => {
+            toast.error("Internal server error");
+          },
+        },
+      });
+    });
+  }
+
+  async function signInWithEmail() {
+    setEmailPending(async () => {
+      await authClient.emailOtp.sendVerificationOtp({
+        email: email,
+        type: "sign-in",
+        fetchOptions: {
+          onSuccess: () => {
+            toast.success("Email sent successfully");
+            router.push(`/verify-otp?email=${email}`);
           },
           onError: () => {
             toast.error("Internal server error");
@@ -52,9 +92,16 @@ export function LoginForm({
         </div>
         <Field>
           <FieldLabel htmlFor="email">Email</FieldLabel>
-          <Input id="email" type="email" placeholder="m@example.com" required />
+          <Input
+            id="email"
+            type="email"
+            placeholder="m@example.com"
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
+            required
+          />
         </Field>
-        <Field>
+        {/* <Field>
           <div className="flex items-center">
             <FieldLabel htmlFor="password">Password</FieldLabel>
             <a
@@ -65,9 +112,21 @@ export function LoginForm({
             </a>
           </div>
           <Input id="password" type="password" required />
-        </Field>
+        </Field> */}
         <Field>
-          <Button type="submit">Login</Button>
+          <Button disabled={emailPending} onClick={signInWithEmail}>
+            {emailPending ? (
+              <>
+                <Loader2 className="size-4 animate-spin" />
+                <span>Loading ...</span>
+              </>
+            ) : (
+              <>
+                <Send className="size-4" />
+                <span>Continue with Email</span>
+              </>
+            )}
+          </Button>
         </Field>
         <FieldSeparator>Or continue with</FieldSeparator>
         <Field>
@@ -84,8 +143,17 @@ export function LoginForm({
             )}
             Login with GitHub
           </Button>
-          <Button variant="outline" type="button">
-            <FcGoogle className="size-4" />
+          <Button
+            disabled={googlePending}
+            onClick={signInWithGoogle}
+            variant="outline"
+            type="button"
+          >
+            {googlePending ? (
+              <Loader2 className="size-4 animate-spin" />
+            ) : (
+              <FcGoogle className="size-4" />
+            )}
             Login with Google
           </Button>
           <FieldDescription className="text-center">
