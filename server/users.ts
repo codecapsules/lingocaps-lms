@@ -1,75 +1,81 @@
 "use server";
 
 import { auth } from "@/lib/auth";
+import { authClient } from "@/lib/auth-client";
 
+/**
+ * Sign in with email/password
+ */
 export const signInUser = async (email: string, password: string) => {
   try {
     const response = await auth.api.signInEmail({
-      body: {
-        email,
-        password,
-      },
+      body: { email, password },
       asResponse: true,
     });
 
-    // ❌ Mauvais identifiants ou erreur auth
     if (!response.ok) {
-      let message = "Invalid email or password";
-
-      try {
-        const errorBody = await response.json();
-        if (typeof errorBody?.message === "string") {
-          message = errorBody.message;
-        }
-      } catch {
-        // ignore JSON parse error
-      }
-
+      const errorBody = await response.json().catch(() => null);
       return {
-        success: false as const,
-        message,
+        success: false,
+        message: errorBody?.message || "Invalid email or password",
       };
     }
 
-    // ✅ Session créée avec succès
-    return {
-      success: true as const,
-      message: "User signed in successfully",
-    };
+    return { success: true, message: "Login successful" };
   } catch (error) {
-    console.error("[signInUser]", error);
-
-    return {
-      success: false as const,
-      message: "Internal server error",
-    };
+    console.error("signInUser error:", error);
+    return { success: false, message: "Internal server error" };
   }
 };
 
+/**
+ * Sign up a new user
+ */
 export const signUpUser = async (
   name: string,
   email: string,
   password: string
 ) => {
   try {
-    await auth.api.signUpEmail({
-      body: {
-        name,
-        email,
-        password,
+    const response = await auth.api.signUpEmail({
+      body: { name, email, password },
+      asResponse: true,
+    });
+
+    if (!response.ok) {
+      const errorBody = await response.json().catch(() => null);
+      return {
+        success: false,
+        message: errorBody?.message || "Failed to sign up",
+      };
+    }
+
+    return { success: true, message: "User signed up successfully" };
+  } catch (error) {
+    console.error("signUpUser error:", error);
+    return { success: false, message: "Internal server error" };
+  }
+};
+
+/**
+ * Send OTP to email
+ */
+export const sendOtpEmail = async (email: string) => {
+  if (!email) return { success: false, message: "Email is required" };
+
+  try {
+    await authClient.emailOtp.sendVerificationOtp({
+      email,
+      type: "sign-in",
+      fetchOptions: {
+        onSuccess: () => true,
+        onError: () => false,
       },
     });
 
-    return {
-      success: true as const,
-      message: "User signed up successfully",
-    };
+    return { success: true, message: "OTP sent successfully" };
   } catch (error) {
-    console.error("[signUpUser]", error);
-
-    return {
-      success: false as const,
-      message: "Internal server error",
-    };
+    console.error("sendOtpEmail error:", error);
+    return { success: false, message: "Failed to send OTP" };
   }
 };

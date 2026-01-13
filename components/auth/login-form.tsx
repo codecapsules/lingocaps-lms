@@ -19,8 +19,8 @@ import Link from "next/link";
 import { toast } from "sonner";
 import { useState, useTransition } from "react";
 import { Loader2, Send } from "lucide-react";
-import { authClient } from "@/lib/auth-client";
 import { useRouter } from "next/navigation";
+
 import {
   Form,
   FormControl,
@@ -29,7 +29,9 @@ import {
   FormLabel,
   FormMessage,
 } from "../ui/form";
-import { signInUser } from "@/server/users";
+
+import { signInUser, sendOtpEmail } from "@/server/users";
+import { signInWithGithub, signInWithGoogle } from "@/server/social-users";
 
 const formSchema = z.object({
   email: z.string().email(),
@@ -41,90 +43,65 @@ export function LoginForm({
   ...props
 }: React.ComponentProps<"form">) {
   const router = useRouter();
+  const [email, setEmail] = useState("");
 
+  // Pending states
   const [isLoginEmailPending, startLoginEmailTransition] = useTransition();
   const [isLoginOTPPending, startLoginOTPTransition] = useTransition();
   const [isGithubPending, startGithubTransition] = useTransition();
   const [isGooglePending, startGoogleTransition] = useTransition();
 
-  const [email, setEmail] = useState("");
-
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
-    defaultValues: {
-      email: "",
-      password: "",
-    },
+    defaultValues: { email: "", password: "" },
   });
 
-  // ===== Login Email / Password =====
-  async function onSubmit(values: z.infer<typeof formSchema>) {
+  // ===== Email / Password Login =====
+  const onSubmit = async (values: z.infer<typeof formSchema>) => {
     startLoginEmailTransition(async () => {
       const result = await signInUser(values.email, values.password);
-
-      if (!result.success) {
+      if (result.success) {
+        toast.success("Login successful");
+        router.push("/dashboard");
+      } else {
         toast.error(result.message || "Invalid credentials");
-        return;
       }
-
-      toast.success("Login successful");
-      router.push("/dashboard");
     });
-  }
+  };
 
-  // ===== Login OTP =====
-  async function signInWithOTPEmail() {
+  // ===== OTP Login =====
+  const handleOtpLogin = async () => {
     if (!email) {
       toast.error("Please enter your email first");
       return;
     }
-
     startLoginOTPTransition(async () => {
-      try {
-        await authClient.emailOtp.sendVerificationOtp({
-          email,
-          type: "sign-in",
-          fetchOptions: {
-            onSuccess: () => {
-              toast.success("Email sent successfully");
-              router.push(`/verify-otp?email=${email}`);
-            },
-            onError: () => toast.error("Internal server error"),
-          },
-        });
-      } catch {
-        toast.error("Internal server error");
+      const result = await sendOtpEmail(email);
+      if (result.success) {
+        toast.success(result.message);
+        router.push(`/verify-otp?email=${email}`);
+      } else {
+        toast.error(result.message || "Failed to send OTP");
       }
     });
-  }
+  };
 
-  // ===== GitHub =====
-  async function signInWithGithub() {
+  // ===== Social Logins =====
+  const handleGithubLogin = async () => {
     startGithubTransition(async () => {
-      await authClient.signIn.social({
-        provider: "github",
-        callbackURL: "/dashboard",
-        fetchOptions: {
-          onSuccess: () => toast.success("Login with GitHub successful"),
-          onError: () => toast.error("Internal server error"),
-        },
-      });
+      const result = await signInWithGithub();
+      if (result.success) return;
+      toast.error(result.message || "Login with GitHub failed");
     });
-  }
+  };
 
-  // ===== Google =====
-  async function signInWithGoogle() {
+  const handleGoogleLogin = async () => {
     startGoogleTransition(async () => {
-      await authClient.signIn.social({
-        provider: "google",
-        callbackURL: "/dashboard",
-        fetchOptions: {
-          onSuccess: () => toast.success("Login with Google successful"),
-          onError: () => toast.error("Internal server error"),
-        },
-      });
+      const result = await signInWithGoogle();
+      if (result.success) return;
+      toast.error(result.message || "Login with Google failed");
     });
-  }
+  };
 
   return (
     <Form {...form}>
@@ -133,7 +110,7 @@ export function LoginForm({
         onSubmit={form.handleSubmit(onSubmit)}
         {...props}
       >
-        {/* ===== Email / Password ===== */}
+        {/* ===== SECTION 1 : Email / Password ===== */}
         <FieldGroup>
           <div className="flex flex-col items-center gap-1 text-center">
             <h1 className="text-2xl font-bold">Login to your account</h1>
@@ -142,6 +119,7 @@ export function LoginForm({
             </p>
           </div>
 
+          {/* Email */}
           <FormField
             control={form.control}
             name="email"
@@ -163,6 +141,7 @@ export function LoginForm({
             )}
           />
 
+          {/* Password */}
           <FormField
             control={form.control}
             name="password"
@@ -171,14 +150,18 @@ export function LoginForm({
                 <div className="flex justify-between">
                   <FormLabel>Password</FormLabel>
                   <Link
-                    href="/forgot-password"
                     className="text-primary text-sm hover:underline"
+                    href="/forgot-password"
                   >
                     Forgot password?
                   </Link>
                 </div>
                 <FormControl>
-                  <Input type="password" {...field} />
+                  <Input
+                    type="password"
+                    placeholder="Your password"
+                    {...field}
+                  />
                 </FormControl>
                 <FormMessage />
               </FormItem>
@@ -192,29 +175,30 @@ export function LoginForm({
                 <span>Loading...</span>
               </>
             ) : (
-              "Login"
+              <span>Login</span>
             )}
           </Button>
         </FieldGroup>
 
-        {/* ===== OTP & Social ===== */}
+        {/* ===== SECTION 2 : OTP / Social ===== */}
         <FieldGroup>
           <FieldSeparator>Or with One Time Password (OTP)</FieldSeparator>
 
           <Field>
             <Input
+              id="otp-email"
               type="email"
               placeholder="m@example.com"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
+              required
             />
           </Field>
-
           <Field>
             <Button
               disabled={isLoginOTPPending}
               type="button"
-              onClick={signInWithOTPEmail}
+              onClick={handleOtpLogin}
             >
               {isLoginOTPPending ? (
                 <>
@@ -235,7 +219,7 @@ export function LoginForm({
           <Field className="flex flex-col gap-2">
             <Button
               disabled={isGithubPending}
-              onClick={signInWithGithub}
+              onClick={handleGithubLogin}
               variant="outline"
               type="button"
             >
@@ -249,7 +233,7 @@ export function LoginForm({
 
             <Button
               disabled={isGooglePending}
-              onClick={signInWithGoogle}
+              onClick={handleGoogleLogin}
               variant="outline"
               type="button"
             >
@@ -263,7 +247,10 @@ export function LoginForm({
 
             <FieldDescription className="text-center">
               Don&apos;t have an account?{" "}
-              <Link href="/register" className="underline underline-offset-4">
+              <Link
+                href="/register"
+                className="hover:text-primary underline underline-offset-4"
+              >
                 Register
               </Link>
             </FieldDescription>
