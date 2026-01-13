@@ -5,6 +5,7 @@ import { emailOTP } from "better-auth/plugins";
 
 import { resend } from "./resend";
 import prisma from "./prisma"; // PrismaClient classique
+import { nextCookies } from "better-auth/next-js";
 
 export const auth = betterAuth({
   // Database (Prisma)
@@ -28,6 +29,12 @@ export const auth = betterAuth({
       clientSecret: process.env.AUTH_GOOGLE_CLIENT_SECRET!,
     },
   },
+  session: {
+    cookieCache: {
+      enabled: true,
+      maxAge: 60 * 5, // 5 minutes
+    },
+  },
 
   // Plugins
   plugins: [
@@ -41,5 +48,6 @@ export const auth = betterAuth({
         });
       },
     }),
+    nextCookies(),
   ],
 });
