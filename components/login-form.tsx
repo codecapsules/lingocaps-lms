@@ -1,3 +1,5 @@
+"use client";
+
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import {
@@ -11,11 +13,34 @@ import { Input } from "@/components/ui/input";
 import { FcGoogle } from "react-icons/fc";
 import { FaGithub } from "react-icons/fa";
 import Link from "next/link";
+import { toast } from "sonner";
+import { useTransition } from "react";
+import { Loader2 } from "lucide-react";
+import { authClient } from "@/lib/auth-client";
 
 export function LoginForm({
   className,
   ...props
 }: React.ComponentProps<"form">) {
+  const [githubPending, setGithubPending] = useTransition();
+
+  async function signInWithGithub() {
+    setGithubPending(async () => {
+      await authClient.signIn.social({
+        provider: "github",
+        callbackURL: "/",
+        fetchOptions: {
+          onSuccess: () => {
+            toast.success("Success");
+          },
+          onError: () => {
+            toast.error("Internal server error");
+          },
+        },
+      });
+    });
+  }
+
   return (
     <form className={cn("flex flex-col gap-6", className)} {...props}>
       <FieldGroup>
@@ -46,8 +71,17 @@ export function LoginForm({
         </Field>
         <FieldSeparator>Or continue with</FieldSeparator>
         <Field>
-          <Button variant="outline" type="button">
-            <FaGithub className="size-4" />
+          <Button
+            disabled={githubPending}
+            onClick={signInWithGithub}
+            variant="outline"
+            type="button"
+          >
+            {githubPending ? (
+              <Loader2 className="size-4 animate-spin" />
+            ) : (
+              <FaGithub className="size-4" />
+            )}
             Login with GitHub
           </Button>
           <Button variant="outline" type="button">

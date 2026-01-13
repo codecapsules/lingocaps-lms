@@ -1,24 +1,20 @@
-import { env } from "./env";
-
-// lib/auth.ts
 import { betterAuth } from "better-auth";
 import { prismaAdapter } from "better-auth/adapters/prisma";
-
-// On réutilise la même instance Prisma (pattern Next.js)
-import { prisma } from "./prisma"; // utilise lib/prisma.ts
+import prisma from "./prisma";
+// If your Prisma file is located elsewhere, you can change the path
+// import { PrismaClient } from "@/generated/prisma/client";
 
 export const auth = betterAuth({
   database: prismaAdapter(prisma, {
-    provider: "postgresql", // ou "mysql", "sqlite", selon ton DB
+    provider: "postgresql", // or "mysql", "postgresql", ...etc
   }),
+  emailAndPassword: {
+    enabled: true,
+  },
   socialProviders: {
     github: {
-      clientId: env.AUTH_GITHUB_CLIENT_ID,
-      clientSecret: env.AUTH_GITHUB_CLIENT_SECRET,
+      clientId: process.env.AUTH_GITHUB_CLIENT_ID as string,
+      clientSecret: process.env.AUTH_GITHUB_CLIENT_SECRET as string,
     },
-  },
-  // Optionnel : config de session / callbacks selon BetterAuth
-  session: {
-    expiresIn: 30 * 24 * 60 * 60, // 30 jours
   },
 });

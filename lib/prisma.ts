@@ -1,20 +1,17 @@
-// lib/prisma.ts
+import { PrismaPg } from "@prisma/adapter-pg";
 import { PrismaClient } from "./generated/prisma/client";
 
-// Création d'un type global pour stocker Prisma dans dev
-declare global {
-  // eslint-disable-next-line no-var
-  var prisma: PrismaClient | undefined;
-}
-
-// On réutilise la même instance en dev pour éviter les multiples connexions
-export const prisma =
-  global.prisma ||
-  new PrismaClient({
-    log: ["query", "info", "warn", "error"], // optionnel : utile pour debug
-    accelerateUrl: process.env.DATABASE_URL || "", // URL pour Prisma Accelerate
-  });
-
+const adapter = new PrismaPg({
+  connectionString: process.env.DATABASE_URL,
+});
+const prismaClientSingleton = () => {
+  return new PrismaClient({ adapter });
+};
+declare const globalThis: {
+  prismaGlobal: ReturnType<typeof prismaClientSingleton>;
+} & typeof global;
+const prisma = globalThis.prismaGlobal ?? prismaClientSingleton();
 if (process.env.NODE_ENV !== "production") {
-  global.prisma = prisma;
+  globalThis.prismaGlobal = prisma;
 }
+export default prisma;
