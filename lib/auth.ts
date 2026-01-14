@@ -7,6 +7,7 @@ import prisma from "./prisma"; // PrismaClient classique
 import { nextCookies } from "better-auth/next-js";
 import { Resend } from "resend";
 import VerificationEmail from "@/components/emails/verification-email";
+import { env } from "./env";
 
 const resend = new Resend(process.env.RESEND_API_KEY);
 
@@ -16,21 +17,23 @@ export const auth = betterAuth({
     provider: "postgresql",
   }),
 
+  // Email + password
+  emailAndPassword: {
+    enabled: true,
+    requireEmailVerification: true,
+  },
+
   emailVerification: {
     sendVerificationEmail: async ({ user, url, token }, request) => {
       const { data, error } = await resend.emails.send({
-        from: "LingoCaps <contact@mail.coachcapsules.com>",
+        from: `${env.EMAIL_SENDER_NAME} <${env.EMAIL_SENDER_EMAIL}>`,
         to: [user.email],
         subject: "LingoCaps – Verification email",
         react: VerificationEmail({ userName: user.name, verificationUrl: url }),
       });
     },
     sendOnSignUp: true,
-  },
-
-  // Email + password
-  emailAndPassword: {
-    enabled: true,
+    autoSignInAfterVerification: false,
   },
 
   // Social login

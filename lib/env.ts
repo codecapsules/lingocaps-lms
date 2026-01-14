@@ -11,6 +11,8 @@ export const env = createEnv({
     AUTH_GOOGLE_CLIENT_ID: z.string().min(1),
     AUTH_GOOGLE_CLIENT_SECRET: z.string().min(1),
     RESEND_API_KEY: z.string().min(1),
+    EMAIL_SENDER_NAME: z.string().min(1),
+    EMAIL_SENDER_EMAIL: z.string().min(1),
   },
   client: {
     // NEXT_PUBLIC_PUBLISHABLE_KEY: z.string().min(1),
