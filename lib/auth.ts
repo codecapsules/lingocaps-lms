@@ -3,15 +3,30 @@ import { betterAuth } from "better-auth";
 import { prismaAdapter } from "better-auth/adapters/prisma";
 import { emailOTP } from "better-auth/plugins";
 
-import { resend } from "./resend";
 import prisma from "./prisma"; // PrismaClient classique
 import { nextCookies } from "better-auth/next-js";
+import { Resend } from "resend";
+import VerificationEmail from "@/components/emails/verification-email";
+
+const resend = new Resend(process.env.RESEND_API_KEY);
 
 export const auth = betterAuth({
   // Database (Prisma)
   database: prismaAdapter(prisma, {
     provider: "postgresql",
   }),
+
+  emailVerification: {
+    sendVerificationEmail: async ({ user, url, token }, request) => {
+      const { data, error } = await resend.emails.send({
+        from: "LingoCaps <contact@mail.coachcapsules.com>",
+        to: [user.email],
+        subject: "LingoCaps – Verification email",
+        react: VerificationEmail({ userName: user.name, verificationUrl: url }),
+      });
+    },
+    sendOnSignUp: true,
+  },
 
   // Email + password
   emailAndPassword: {

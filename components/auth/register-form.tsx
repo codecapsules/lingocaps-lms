@@ -42,7 +42,6 @@ const signUpFormSchema = z
   });
 
 export function RegisterForm({ className }: { className?: string }) {
-  const router = useRouter();
   const [registerPending, startRegisterPending] = useTransition();
 
   const form = useForm<z.infer<typeof signUpFormSchema>>({
@@ -66,8 +65,7 @@ export function RegisterForm({ className }: { className?: string }) {
         );
 
         if (result.success) {
-          toast.success("Register successful");
-          router.push("/");
+          toast.success("Email verification sent, please check your email");
         } else {
           toast.error(result.message || "Invalid credentials");
         }

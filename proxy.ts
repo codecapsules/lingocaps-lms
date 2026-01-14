@@ -6,32 +6,54 @@ import { auth } from "@/lib/auth";
 export async function proxy(request: NextRequest) {
   const { pathname } = request.nextUrl;
 
-  // 🔐 Vérifie la session côté serveur
   const session = await auth.api.getSession({
     headers: request.headers,
   });
 
   const isLoggedIn = !!session?.user;
-  console.log("PROXY HIT:", pathname, "Logged in:", isLoggedIn);
+  const isEmailVerified = session?.user?.emailVerified === true;
 
-  // 🔒 Accès dashboard sans être connecté → login
+  console.log(
+    "PROXY HIT:",
+    pathname,
+    "Logged in:",
+    isLoggedIn,
+    "Email verified:",
+    isEmailVerified
+  );
+
+  // 🔒 Dashboard sans être connecté → login
   if (pathname.startsWith("/dashboard") && !isLoggedIn) {
     return NextResponse.redirect(new URL("/login", request.url));
   }
 
-  // 🚫 Accès login/register quand déjà connecté → dashboard
-  if ((pathname === "/login" || pathname === "/register") && isLoggedIn) {
+  // 🚫 Dashboard connecté mais email non vérifié → verify-email
+  if (pathname.startsWith("/dashboard") && isLoggedIn && !isEmailVerified) {
+    return NextResponse.redirect(new URL("/verify-email", request.url));
+  }
+
+  // 🚫 Login/register quand déjà connecté ET email vérifié
+  if (
+    (pathname === "/login" || pathname === "/register") &&
+    isLoggedIn &&
+    isEmailVerified
+  ) {
     return NextResponse.redirect(new URL("/dashboard", request.url));
   }
 
-  // 🏠 Accès racine → dashboard si connecté, login sinon
+  // 🏠 Racine
   if (pathname === "/") {
-    return NextResponse.redirect(
-      new URL(isLoggedIn ? "/dashboard" : "/login", request.url)
-    );
+    if (!isLoggedIn) {
+      return NextResponse.redirect(new URL("/login", request.url));
+    }
+
+    if (!isEmailVerified) {
+      return NextResponse.redirect(new URL("/verify-email", request.url));
+    }
+
+    return NextResponse.redirect(new URL("/dashboard", request.url));
   }
 
-  // ✅ Sinon, continue normalement
   return NextResponse.next();
 }
 
