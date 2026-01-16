@@ -69,23 +69,6 @@ export function LoginForm({
     });
   };
 
-  // ===== OTP Login =====
-  const handleOtpLogin = async () => {
-    if (!email) {
-      toast.error("Please enter your email first");
-      return;
-    }
-    startLoginOTPTransition(async () => {
-      const result = await sendOtpEmail(email);
-      if (result.success) {
-        toast.success(result.message);
-        router.push(`/verify-otp?email=${email}`);
-      } else {
-        toast.error(result.message || "Failed to send OTP");
-      }
-    });
-  };
-
   // ===== Social Logins =====
   const handleGithubLogin = async () => {
     startGithubTransition(async () => {
@@ -180,40 +163,8 @@ export function LoginForm({
           </Button>
         </FieldGroup>
 
-        {/* ===== SECTION 2 : OTP / Social ===== */}
+        {/* ===== SECTION 2 : Social ===== */}
         <FieldGroup>
-          <FieldSeparator>Or with One Time Password (OTP)</FieldSeparator>
-
-          <Field>
-            <Input
-              id="otp-email"
-              type="email"
-              placeholder="m@example.com"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              required
-            />
-          </Field>
-          <Field>
-            <Button
-              disabled={isLoginOTPPending}
-              type="button"
-              onClick={handleOtpLogin}
-            >
-              {isLoginOTPPending ? (
-                <>
-                  <Loader2 className="size-4 animate-spin" />
-                  <span>Loading...</span>
-                </>
-              ) : (
-                <>
-                  <Send className="size-4" />
-                  <span>Continue with Email</span>
-                </>
-              )}
-            </Button>
-          </Field>
-
           <FieldSeparator>Or continue with</FieldSeparator>
 
           <Field className="flex flex-col gap-2">
