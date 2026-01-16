@@ -30,8 +30,8 @@ import {
   FormMessage,
 } from "../ui/form";
 
-import { signInUser, sendOtpEmail } from "@/server/users";
-import { signInWithGithub, signInWithGoogle } from "@/server/social-users";
+import { signInUser } from "@/server/users";
+import { authClient } from "@/lib/auth-client";
 
 const formSchema = z.object({
   email: z.string().email(),
@@ -70,20 +70,20 @@ export function LoginForm({
   };
 
   // ===== Social Logins =====
-  const handleGithubLogin = async () => {
-    startGithubTransition(async () => {
-      const result = await signInWithGithub();
-      if (result.success) return;
-      toast.error(result.message || "Login with GitHub failed");
+  const signInWithGoogle = async () => {
+    const data = await authClient.signIn.social({
+      provider: "google",
+      callbackURL: "/dashboard",
     });
+    console.log(data);
   };
 
-  const handleGoogleLogin = async () => {
-    startGoogleTransition(async () => {
-      const result = await signInWithGoogle();
-      if (result.success) return;
-      toast.error(result.message || "Login with Google failed");
+  const signInWithGithub = async () => {
+    const data = await authClient.signIn.social({
+      provider: "github",
+      callbackURL: "/dashboard",
     });
+    console.log(data);
   };
 
   return (
@@ -170,7 +170,7 @@ export function LoginForm({
           <Field className="flex flex-col gap-2">
             <Button
               disabled={isGithubPending}
-              onClick={handleGithubLogin}
+              onClick={signInWithGithub}
               variant="outline"
               type="button"
             >
@@ -184,7 +184,7 @@ export function LoginForm({
 
             <Button
               disabled={isGooglePending}
-              onClick={handleGoogleLogin}
+              onClick={signInWithGoogle}
               variant="outline"
               type="button"
             >
