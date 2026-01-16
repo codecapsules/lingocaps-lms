@@ -8,6 +8,7 @@ import { nextCookies } from "better-auth/next-js";
 import { Resend } from "resend";
 import VerificationEmail from "@/components/emails/verification-email";
 import { env } from "./env";
+import ForgotPasswordEmail from "@/components/emails/reset-password";
 
 const resend = new Resend(process.env.RESEND_API_KEY);
 
@@ -21,6 +22,18 @@ export const auth = betterAuth({
   emailAndPassword: {
     enabled: true,
     requireEmailVerification: true,
+    sendResetPassword: async ({ user, url }) => {
+      resend.emails.send({
+        from: `${env.EMAIL_SENDER_NAME} <${env.EMAIL_SENDER_EMAIL}>`,
+        to: [user.email],
+        subject: "LingoCaps – Reset password",
+        react: ForgotPasswordEmail({
+          username: user.name,
+          userEmail: user.email,
+          resetUrl: url,
+        }),
+      });
+    },
   },
 
   emailVerification: {
